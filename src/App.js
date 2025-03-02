@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState } from "react";
 
 // Bu bileşen todo listesi oluşturur ve API'den alınan verileri görüntüler.
 // Görevler:
@@ -23,36 +23,99 @@ import { useEffect, useState } from 'react'
 // 5. Mobil cihazlar için listeyi daha kompakt bir düzene göre optimize edin (örneğin, küçük yazı tipi boyutları ve dar kenar boşlukları).
 
 export default function Todos() {
-  //   {
-  //     "userId": 1,
-  //     "id": 1,
-  //     "title": "delectus aut autem",
-  //     "completed": false
-  // }[]
+  const [todos, setTodos] = useState([]); // API'den gelen todo'lar
+  const [loading, setLoading] = useState(true); // Yüklenme durumu
+  const [error, setError] = useState(null); // Hata durumu
+  const [sortType, setSortType] = useState("default"); // Sıralama türü
+
+  // API'den veri çekme
+  useEffect(() => {
+    fetch("https://jsonplaceholder.typicode.com/users/1/todos")
+      .then((res) => {
+        if (!res.ok) {
+          throw new Error("Veri alınırken hata oluştu!"); // Hata fırlatma
+        }
+        return res.json();
+      })
+      .then((data) => {
+        setTodos(data);
+        setLoading(false);
+      })
+      .catch((err) => {
+        setError(err.message); // Hata mesajını state'e kaydet
+        setLoading(false);
+      });
+  }, []);
+
+  // Checkbox değiştiğinde todo'yu güncelle
+  const toggleTodo = (id) => {
+    setTodos((prevTodos) =>
+      prevTodos.map((todo) =>
+        todo.id === id ? { ...todo, completed: !todo.completed } : todo
+      )
+    );
+  };
+
+  // Sıralama fonksiyonu
+  const sortedTodos = [...todos].sort((a, b) => {
+    if (sortType === "alphabetical") return a.title.localeCompare(b.title);
+    if (sortType === "completed") return a.completed - b.completed;
+    return 0; // Varsayılan sıra
+  });
 
   return (
-    <div className='flex justify-center flex-col items-center py-8'>
-      <h1 className='text-2xl font-bold pb-4'>Yapılacaklar Listem</h1>
-      <div className='space-y-5'>{/* todos buraya */}</div>
+    <div className="flex flex-col items-center py-8">
+      <h1 className="text-2xl font-bold pb-4 bg-blue-100 p-2 rounded-md">
+        Yapılacaklar Listem
+      </h1>
+
+      {/* Hata ve Yükleme Durumu */}
+      {loading && <p>Loading...</p>}
+      {error && <p className="text-red-500">{error}</p>}
+
+      {/* Sayaç */}
+      <p>
+        Toplam: {todos.length}, Tamamlanmış:{" "}
+        {todos.filter((todo) => todo.completed).length}
+      </p>
+
+      {/* Sıralama Seçeneği */}
+      <select
+        onChange={(e) => setSortType(e.target.value)}
+        className="mt-2 p-2 border rounded-md"
+      >
+        <option value="default">Varsayılan</option>
+        <option value="alphabetical">Alfabetik</option>
+        <option value="completed">Tamamlanma Durumu</option>
+      </select>
+
+      {/* Todo Listesi */}
+      <div className="space-y-3 w-80 mt-4">
+        {sortedTodos.map((todo) => (
+          <Todo key={todo.id} todo={todo} toggleTodo={toggleTodo} />
+        ))}
+      </div>
     </div>
-  )
+  );
 }
 
-function Todo() {
+// Todo Bileşeni
+function Todo({ todo, toggleTodo }) {
   return (
-    <div className='relative flex items-start'>
-      <div className='flex h-6 items-center'>
-        <input
-          id='completed'
-          name='completed'
-          type='checkbox'
-          defaultChecked={false}
-          className='h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-600'
-        />
-      </div>
-      <div className='ml-3 text-sm leading-6'>
-        <div className='font-medium text-gray-900'>Başlık</div>
-      </div>
+    <div className="flex items-center bg-white shadow-md p-3 rounded-md">
+      <input
+        type="checkbox"
+        checked={todo.completed}
+        onChange={() => toggleTodo(todo.id)}
+        className="h-4 w-4 text-blue-600 border-gray-300 focus:ring-2 focus:ring-blue-500"
+      />
+      <span
+        className={`ml-3 ${
+          todo.completed ? "line-through text-gray-500" : "text-black"
+        }`}
+      >
+        {todo.title}
+      </span>
     </div>
-  )
+  );
 }
